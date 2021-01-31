@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# Version 0.1
+
 # Copyright 2021 "Allen Garvin" <aurvondel@gmail.com>
 # License: 3-clause BSD
 # 
