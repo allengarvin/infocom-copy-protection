@@ -105,9 +105,32 @@ class Fix:
 # If the game file is not close to the zmachine limit, I should be able to encoude a new zstring
 # and append to the end of the file, then switch out the address reference.
 
+class Witness_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.game_name = "Witness"
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.desc = ("The Witness has a matchbook and note. I'll encode these in new strings and add to the "
+                     "end of the file, then change the description addresses.")
+
+    def fix(self):
+        note_text = "Monica dearest,\n\nI can live with this sadness no longer. For twenty nine years, your father has lived his own life without me. Now I am taking the only way out.\n\nMonica, you musn't blame yourself in any way for what I am about to do. Nor should you blame Ralph. The affair with him was only a futile attempt to prove I was a woman, not just a piece in Freeman's collection.\n\nTell your illustrious father how deeply I regret soiling one of his precious revolvers.\n\nMonica\n"
+        matchbook_text = "Chandler 1729"
+
+        print("I haven't written the zscii encode routines yet.")
+
 class Seastalker_fix(Fix):
+    needed = True
+
     def __init__(self, gf):
         self.game_name = "Seastalker"
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.desc = ("Seastalker has no explicit copy-prot, but it does have a lot of text that you have to "
+                     "read from the feelies. I'm going to fix up the object descriptions and encrypt in new "
+                     "strings, added to the end of the game file.")
 
     def fix(self):
         tip_text = "Tip is your closest pal and constant companion. Basically, there's nothing this guy can't do. He's an expert pilot, submariner, surfer, and swimmer. He's more of a jock than an inventor such as yourself, but his bulldog courage and rollicking high spirits make him a great companion in any adventure."
@@ -121,6 +144,7 @@ class Seastalker_fix(Fix):
 
 
         computestor_text = "It's a machine for troubleshooting your own inventions, machines, or systems. It is connected to several other machines in the lab. To use it type ASK COMPUTESTOR ABOUT (a device)."
+        print("I haven't written the zscii encode routines yet.")
 
 class Zork_fix(Fix):
     def __init__(self, gf):
@@ -289,7 +313,7 @@ class Lurking_fix(Fix):
         self.set_byte(start + 2, zw[1])
         return 1
 
-class Bureaucray_fix(Fix):
+class Bureaucracy_fix(Fix):
     needed = True
 
     def __init__(self, gf):
@@ -361,6 +385,13 @@ games = {
     ("850628", 131) : AMFV_fix,
     ("850814", 77) :  AMFV_fix,
     ("851122", 79) :  AMFV_fix,
+
+    ("830524", 13) : Witness_fix,
+    ("830910", 18) : Witness_fix,
+    ("831119", 20) : Witness_fix,
+    ("831208", 21) : Witness_fix,
+    ("840924", 22) : Witness_fix,
+    ("840925", 23) : Witness_fix,
 
     ("870506", 203) : Lurking_fix,
     ("870912", 219) : Lurking_fix,
