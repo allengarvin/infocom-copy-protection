@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # Version 0.1
+# Master copy here: https://github.com/allengarvin/infocom-copy-protection
 
 # Copyright 2021 "Allen Garvin" <aurvondel@gmail.com>
 # License: 3-clause BSD
@@ -82,6 +83,58 @@ class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
 
+class Arthur_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.game_name = "Arthur"
+        self.desc = ("With Arthur, we change it so that every password is correct.")
+
+    # UNTESTED
+    def fix(self):
+        if self.gamefile.release == 74:
+            start = 0x1e01e
+        elif self.gamefile.release == 63:
+            start = 0x1e63e
+        elif self.gamefile.release == 54:
+            start = 0x1e42e
+        elif self.gamefile.release == 41:
+            start = 0x1cb12
+        else:
+            print("BUG? Unknown Arthur")
+            return 0
+        self.set_byte(start, 0xff)
+        self.set_byte(start + 1, 0xc1)
+        return 1
+
+class Spellbreaker_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.game_name = "Spellbreaker"
+        self.desc = ("Spellbreaker uses several wizard cards describing big-name wizards, "
+                     "and Belboz cite their attributes expecting a name back. We change it so "
+                     "that he always thinks you're genuine, not a fake version of you.")
+
+    # UNTESTED
+    def fix(self):
+        if self.gamefile.release == 63:
+            start = 0x10fc4
+        elif self.gamefile.release == 86:
+            start = 0x11038
+        elif self.gamefile.release == 87:
+            start = 0x1102c
+        else:
+            print("Bug? This is an unknown release of Spellbreaker")
+            return 0
+        self.set_byte(start, 0xff)
+        self.set_byte(start + 2, 36)
+        return 1
+        
 class Lurking_fix(Fix):
     needed = True
 
