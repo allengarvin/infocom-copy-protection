@@ -16,8 +16,6 @@
 # Wishbringer (no copy protection)
 # Trinity (no copy protection per se--though it helps)
 # Witness (no copy protection?)
-# Deadline (No copy prot)
-# Enchanter (no copy prot)
 # HH Guide (no copy prot)
 # Beyond Zork (No copy prot? I don't recall)
 # Plundered Hearts (no copy prot)
@@ -103,6 +101,27 @@ class Fix:
     def description(self):
         return self.desc
 
+# Including these, because occasionally there is text like "See the manual", to save space.
+# If the game file is not close to the zmachine limit, I should be able to encoude a new zstring
+# and append to the end of the file, then switch out the address reference.
+
+class Seastalker_fix(Fix):
+    def __init__(self, gf):
+        self.game_name = "Seastalker"
+
+    def fix(self):
+        tip_text = "Tip is your closest pal and constant companion. Basically, there's nothing this guy can't do. He's an expert pilot, submariner, surfer, and swimmer. He's more of a jock than an inventor such as yourself, but his bulldog courage and rollicking high spirits make him a great companion in any adventure."
+        bly_text = "This woman's delicate beauty is hard to resist, but when you start to talk to her--wow, what a tough one she is. For one thing, she's a champion athlete and a superachiever. For the past three months now, she's been commander at the Aquadome. She's an honor graduate of the Navy Frogman School and the Galley Institute of Technology. You'll see soon enough that she doesn't have much patience with people who don't meet her standards. And that attitude tends to make some people real mad."
+        mick_text = "Mick was probably out earning a buck before most of us were born. In fact, you won't find anybody who knows more about nuclear power, undersea navigation, or communications. That's pretty good for a guy who never had a formal education. But Mick doesn't like to settle arguments with his tongue; he'd rather use his fists. Naturally, he doesn't take well to Commander Bly's kind of discipline."
+        bill_text = "Bill comes from a different background altogether. Basically, he used to be a beach bum with a knack for scuba diving and \"shade tree\" mechanic work. Now he's joined society in a big way. He's cut his hair and found himself a job as a crack scuba diver at the Aquadome."
+        horvak_text = "Walt's probably the most dedicated scientist around, so dedicated that sometimes you get the impression he's a loner. He's always working on some new experiment or scuba diving. Walt doesn't look like the \"doctor\" type, but he spent a lot of time working in a hospital before he got interested in marine biochemistry. If you're looking for any kind of medical advice, he's the one to ask."
+        sharon_text = "She's fresh out of college--The Massachusetts Institute of Technology. Naturally, she's pretty familiar with all types of science and technology, and this job as an inventor's assistant fits her well. Her father was a famous college professor and an old friend of your father's. In fact, sometimes you get the feeling that she's your own sister. But there's something about her that you can't get close to."
+        amy_text = "She's a Navy woman through and through. Always a tomboy at heart, Amy's been to the Navy Frogman School and had lots of neat jobs like this one. She's still in college at Columbia University and works at the Aquadome during the summer."
+        jerome_text = "Dr. Thorpe is one of those scientific geniuses who lock themselves up in their labs and discover things. Unfortunately, sometimes the things they discover or create aren't too good. Thorpe's claim to fame is his AH (AMINO-HYDROPHASE) organisms that he supposedly manufactured from the AH molecule. There's an interesting article about him and his experiments in the Science World magazine."
+
+
+        computestor_text = "It's a machine for troubleshooting your own inventions, machines, or systems. It is connected to several other machines in the lab. To use it type ASK COMPUTESTOR ABOUT (a device)."
+
 class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
@@ -113,7 +132,7 @@ class Deadline_fix(Fix):
 
 class Enchanter_fix(Fix):
     def __init__(self, gf):
-        self.game_name = "Deadline"
+        self.game_name = "Enchanter"
 
 class AMFV_fix(Fix):
     needed = True
@@ -396,15 +415,53 @@ games = {
     ("840727", 17) : Zork_fix,
     ("860811", 25) : Zork_fix,
 
+    ("840320", 86) : Seastalker_fix,
+    ("840501", 15) : Seastalker_fix,
+    ("840522", 15) : Seastalker_fix,
+    ("840612", 15) : Seastalker_fix,
+    ("840716", 15) : Seastalker_fix,
+    ("850208", 17) : Seastalker_fix,
+    ("850515", 16) : Seastalker_fix,
+    ("850603", 16) : Seastalker_fix,
+    ("850919", 18) : Seastalker_fix,
 }
-
-def word(w):
-    return w[0] * 256 + w[1]
 
 def make_zword(n):
     if n < 0:
         n = 65536 + n
     return (n // 256, n % 256)
+
+class Zscii:
+    alphabet = [
+        "abcdefghijklmnopqrstuvwxyz",
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        " \n0123456789.,!?_#'\"/\\-:()"
+    ]
+    
+    def alphabet_number(c):
+        for i in range(3):
+            for j in range(26):
+                if self.alphabet[i][j] == c:
+                    return i
+
+        # Let's see if we can get by without implementing complete ascii or utf8 encoding, for now
+        print("Text encode: alphabet_number() unable to find `{:s}' (ord: {:d}) in alphabet\n".format(c, ord(c)))
+        sys.exit(0)
+
+    def string_index(c):
+        for i in range(3):
+            for j in range(26):
+                if self.alphabet[i][j] == c:
+                    return j
+        print("Text encode: alphabet_number() unable to find `{:s}' (ord: {:d}) in alphabet\n".format(c, ord(c)))
+        sys.exit(0)
+        
+    def encode_text(s):
+        zchars = len(s) * 2 + 1
+        # will do later
+
+def word(w):
+    return w[0] * 256 + w[1]
 
 class Gamefile:
     def __init__(self, fn):
