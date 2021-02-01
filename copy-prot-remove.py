@@ -83,6 +83,48 @@ class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
 
+class Startcross_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.game_name = "Starcross"
+        self.desc = ("Starcross was the first Infocom game with copy protection in the feelies, "
+                     "for coordinates to the mysterious 'mass'. Here, we'll modify the file so that "
+                     "no matter what destination you put in, you will always end up at the Artifact.")
+
+    # UNTESTED
+    def fix(self):{
+        # We change every "je" branch statement so that no matter where you
+        # punch a coordinate, you go to the space ship
+
+        if self.gamefile.release == 15:
+            self.set_byte(0x8105, 0x19)
+            self.set_byte(0x8108, 0x1a)
+
+            self.set_byte(0x9269, 0x1a)
+            self.set_byte(0x930e, 0x1a)
+
+            self.set_byte(0x9435, 0x1a)
+
+            self.set_byte(0xbc50, 0x1a)
+            return 1
+        if self.gamefile.release == 17:
+            self.set_byte(0x8057, 0x19)
+            self.set_byte(0x805a, 0x1a)
+
+            self.set_byte(0x914f, 0x1a)
+            self.set_byte(0x91f4, 0x1a)
+
+            self.set_byte(0x930f, 0x1a)
+
+            self.set_byte(0xba29, 0x1a)
+            return 1
+        if self.gamefile.release == 18:
+            pass
+            # DOOO THIS VERSION!!!!!!!
+        
 class Arthur_fix(Fix):
     needed = True
 
