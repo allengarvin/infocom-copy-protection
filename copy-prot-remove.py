@@ -1,5 +1,30 @@
 #!/usr/bin/python3
 
+# Left to do:
+# AMFV (have a fix already)
+# Ballyhoo (have a fix already)
+# Border Zone (don't remember)
+# Cutthroats (have a complicated fix)
+# Infidel (I was unable to find a good solution in the 1990s--try again?)
+# Seastalker (don't know well enough)
+# Shogun (ugh... I don't remember)
+# Stationfall (have a fix already)
+# Zork Zero (TONS of copy protection--need to review)
+# Moonmist (impossible, utterly impossible)
+
+# Suspended (no copy prot)
+# Suspect (No copy protection)
+# Wishbringer (no copy protection)
+# Trinity (no copy protection per se--though it helps)
+# Witness (no copy protection?)
+# Deadline (No copy prot)
+# Enchanter (no copy prot)
+# HH Guide (no copy prot)
+# Beyond Zork (No copy prot? I don't recall)
+# Plundered Hearts (no copy prot)
+# Sherlock (No copy prot? Don't know very well)
+
+
 # Version 0.1
 # Master copy here: https://github.com/allengarvin/infocom-copy-protection
 
