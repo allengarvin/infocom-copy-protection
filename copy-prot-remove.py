@@ -5,15 +5,15 @@
 # Border Zone (don't remember)
 # Cutthroats (have a complicated fix)
 # Infidel (I was unable to find a good solution in the 1990s--try again?)
-# Seastalker (don't know well enough)
+# Seastalker 
 # Shogun (ugh... I don't remember)
 # Stationfall (have a fix already)
 # Zork Zero (TONS of copy protection--need to review)
 # Moonmist (impossible, utterly impossible)
+# Wishbringer (Matchbook desc and telegram)
 
 # Suspended (no copy prot)
 # Suspect (No copy protection)
-# Wishbringer (no copy protection)
 # Trinity (no copy protection per se--though it helps)
 # Witness (no copy protection?)
 # HH Guide (no copy prot)
@@ -289,6 +289,31 @@ class Lurking_fix(Fix):
         self.set_byte(start + 2, zw[1])
         return 1
 
+class Bureaucray_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        elf.game_name = "Bureaucracy"
+        selfdesc = ("I got this fix from Mark Knibb's patches from ftp.gmd.de/ifarchive.")
+
+    # Untested
+    def fix(self):
+        if self.gamefile.release == 86:
+            start1, start2 = 0x27640, 0x27668
+        elif self.gamefile.release == 116:
+            start1, start2 = 0x27691, 0x276BB
+        elif self.gamefile.release == 160:
+            print("This throws an exception in txd, so I haven't done it yet. I'm working on a txd replacement.")
+            print("Fatal: too many orphan code fragments")
+            return 0
+        for addr in range(start1, start1 + 5):
+            self.set_byte(addr, 0xb4)
+        for addr in range(start2, start2 + 3):
+            self.set_byte(addr, 0xb4)
+        return 1
+
 class Sorcerer_fix(Fix):
     needed = True
 
@@ -424,6 +449,11 @@ games = {
     ("850515", 16) : Seastalker_fix,
     ("850603", 16) : Seastalker_fix,
     ("850919", 18) : Seastalker_fix,
+
+    ("870212", 86) :  Bureaucracy_fix,
+    ("870602", 116) : Bureaucracy_fix,
+    ("880521", 160) : Bureaucracy_fix,
+
 }
 
 def make_zword(n):
