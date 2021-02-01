@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 # Left to do:
-# AMFV (have a fix already)
 # Ballyhoo (have a fix already)
 # Border Zone (don't remember)
 # Cutthroats (have a complicated fix)
@@ -108,7 +107,48 @@ class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
 
-class Startcross_fix(Fix):
+class Deadline_fix(Fix):
+    def __init__(self, gf):
+        self.game_name = "Deadline"
+
+class Enchanter_fix(Fix):
+    def __init__(self, gf):
+        self.game_name = "Deadline"
+
+class AMFV_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.gamefile = gf
+        self.contents = bytearray(gf.contents)
+        self.game_name = "AMFV"
+        self.desc = ("AMFV uses a code wheel where you match and type in an integer code."
+                     " This fix will reverse the branching, so an correct answer will fail, "
+                     " and an incorrect will always pass.")
+
+    # UNTESTED
+    def fix(self): 
+        if self.gamefile.release == 1:
+            print("Release 1 is a very early beta with no copy protection.")
+            return 0
+        elif self.gamefile.release == 47 or self.gamefile.release == 131:
+            print("Game file is corrupt. I haven't been able to get it working.")
+            return 0
+        elif self.gamefile.release == 84:
+            print("Release 84 is a beta version that tells you to just type '99'")
+            return 0
+        elif self.gamefile.release == 77:
+            self.set_byte(0x334fb, self.contents[0x334fb] | 128)
+            self.set_byte(0x33503, self.contents[0x33503] | 128)
+        elif self.gamefile.release == 79:
+            self.set_byte(0x3350b, self.contents[0x3350b] | 128)
+            self.set_byte(0x3350f, self.contents[0x3350f] | 128)
+        else:
+            print("BUG? Uknown AMFV version")
+            return 0
+        return 1
+
+class Starcross_fix(Fix):
     needed = True
 
     def __init__(self, gf):
@@ -120,7 +160,7 @@ class Startcross_fix(Fix):
                      "no matter what destination you put in, you will always end up at the Artifact.")
 
     # UNTESTED
-    def fix(self):{
+    def fix(self):
         # We change every "je" branch statement so that no matter where you
         # punch a coordinate, you go to the space ship
 
@@ -271,6 +311,13 @@ class Sorcerer_fix(Fix):
         
 
 games = {
+    ("841226", 1) :   AMFV_fix,
+    ("850313", 47) :  AMFV_fix,
+    ("850516", 84) :  AMFV_fix,
+    ("850628", 131) : AMFV_fix,
+    ("850814", 77) :  AMFV_fix,
+    ("851122", 79) :  AMFV_fix,
+
     ("870506", 203) : Lurking_fix,
     ("870912", 219) : Lurking_fix,
     ("870918", 221) : Lurking_fix,
@@ -278,11 +325,38 @@ games = {
     ("000000", 67) : Sorcerer_fix,
     ("831208", 67) : Sorcerer_fix,
     ("840106", 85) : Sorcerer_fix,
-    ("840131", 4) : Sorcerer_fix,
-    ("840508", 6) : Sorcerer_fix,
+    ("840131", 4) :  Sorcerer_fix,
+    ("840508", 6) :  Sorcerer_fix,
     ("851021", 13) : Sorcerer_fix,
     ("851108", 15) : Sorcerer_fix,
     ("860904", 18) : Sorcerer_fix,
+
+    ("890502", 40) : Arthur_fix,
+    ("890504", 41) : Arthur_fix,
+    ("890606", 54) : Arthur_fix,
+    ("890622", 63) : Arthur_fix,
+    ("890714", 74) : Arthur_fix,
+
+    ("820311", 18) : Deadline_fix,
+    ("820427", 19) : Deadline_fix,
+    ("820512", 21) : Deadline_fix,
+    ("820809", 22) : Deadline_fix,
+    ("821108", 26) : Deadline_fix,
+    ("831005", 27) : Deadline_fix,
+    ("850129", 28) : Deadline_fix,
+
+    ("830810", 10) : Enchanter_fix,
+    ("831107", 15) : Enchanter_fix,
+    ("831118", 16) : Enchanter_fix,
+    ("840518", 16) : Enchanter_fix,
+    ("851118", 24) : Enchanter_fix,
+    ("860820", 29) : Enchanter_fix,
+    ("850916", 63) : Spellbreaker_fix,
+    ("860829", 86) : Spellbreaker_fix,
+    ("860904", 87) : Spellbreaker_fix,
+    ("820901", 15) : Starcross_fix,
+    ("821021", 17) : Starcross_fix,
+    ("830114", 18) : Starcross_fix,
 
     ("000000", 5) : Zork_fix,
     ("000000", 20) : Zork_fix,
@@ -298,10 +372,10 @@ games = {
     ("840726", 88) : Zork_fix,
     ("840726", 88) : Zork_fix,
     ("871125", 52) : Zork_fix,
-    ("880113", 3) : Zork_fix,
-    ("880429", 119) : Zork_fix,
+    ("880113", 3) :  Zork_fix,
+    ("880429", 119): Zork_fix,
     ("890613", 15) : Zork_fix,
-    ("AS000C", 2) : Zork_fix,
+    ("AS000C", 2) :  Zork_fix,
     ("840330", 15) : Zork_fix,
     ("UG3AU5", 15) : Zork_fix,
     ("820308", 15) : Zork_fix,
@@ -313,7 +387,7 @@ games = {
     ("840518", 22) : Zork_fix,
     ("840904", 48) : Zork_fix,
     ("860811", 63) : Zork_fix,
-    ("UG3AU5", 7) : Zork_fix,
+    ("UG3AU5", 7) :  Zork_fix,
     ("820818", 10) : Zork_fix,
     ("821025", 12) : Zork_fix,
     ("830331", 15) : Zork_fix,
