@@ -4,21 +4,29 @@
 # Ballyhoo (have a fix already)
 # Border Zone (don't remember)
 # Cutthroats (have a complicated fix)
-# Infidel (I was unable to find a good solution in the 1990s--try again?)
 # Seastalker 
 # Shogun (ugh... I don't remember)
-# Stationfall (have a fix already)
 # Zork Zero (TONS of copy protection--need to review)
-# Moonmist (impossible, utterly impossible)
-# Wishbringer (Matchbook desc and telegram)
+# Wishbringer
 
 # Suspended (no copy prot, but hard to play without the package)
-# Suspect (No copy protection, but some text referring to the package)
 # Trinity (no copy protection per se--though it helps)
 # HH Guide (no copy prot)
 # Beyond Zork (No copy prot? I don't recall -- I guess the book?)
-# Plundered Hearts (no copy prot)
 # Sherlock (No copy prot? Don't know very well)
+
+# Suspect:
+# Object -> -> -> costume_receipt "costume receipt"
+#   with  text_string "(A copy is in your game package.)",
+# Object -> -> -> business_card "business card"
+#   with  text_string "(A copy is in your game package.)",
+# https://gallery.guetech.org/suspect/suspect.html
+
+# Plundered Hearts:
+# the banknote refers to the game package (showing Lafond with his thumb on the island, a hint)
+
+# Moonmist (impossible, utterly impossible)
+# Moonmist bounces right against the limits of z3. Can't hack.
 
 # Version 0.1
 # Master copy here: https://github.com/allengarvin/infocom-copy-protection
@@ -91,16 +99,21 @@ class Infidel_fix(Fix):
         self.contents = bytearray(gf.contents)
         self.desc = "Infidel relies on the game map to give coordinates. Here, I'll add those to the description of the map."
 
+    # Verified 2021-02-02
     def fix(self):
-        print("This one will be a bit difficult. It uses a print_ret so we'll need to fit it less than the number of bytes in the function")
-        print("If it's not exact, txd will choke (I think the game should still function, but it seems rude to break tools)")
+        # replacement text is (96 bytes long, same is the print_ret in the game)
+        replacement = bytearray(b'\x04M9WQ\x91z\xad9\x00#G(\x1c\x1b\x00.\x9aM \x1b D\xd9;:%@\x15E0\t)\x81\x1c\xa9\x15%`\xab\x17 \x04\xd1Rl;:%@\x15e(\t)\x81\x1c\xa9\x15E`\xac\x15ed\x01p \x15E<\x04aUeR\x1dW\x00\xa9\x16%(\xa8\x01]UI;.Ra\x1c\x00\x80\x00')
 
-#        The code is:
-#        print_ret "This is a reproduction of the map the Professor made while on his expedition. It indicates where he hoped to find the lost pyramid. It is included in your game package."
-#
-#        We want to change to something like: 
-#        The map records that he found the hieroglyphic cube at longitude 12'43\" and latitude 11'3\" on 27 September 1920.";
-        return 0
+
+        if self.gamefile.serial == "830916":
+            start = 0xffea
+        elif self.gamefile.serial == "840522": 
+            start = 0x1048c
+        else:
+            print("Unknown Infidel version")
+            return 0
+        self.contents[start:start+96] = replacement
+        return 1
 
 class Stationfall_fix(Fix):
     needed = True
@@ -889,7 +902,7 @@ def main(args):
     col = os.get_terminal_size().columns
     print(fix.name().center(col))
     print()
-    print("\n".join(textwrap.wrap(fix.description(), width=col)))
+    print("\n".join(textwrap.wrap(fix.description(), width=col-5)))
 
     if args.dryrun:
         return
