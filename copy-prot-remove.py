@@ -81,10 +81,6 @@ class Fix:
     def description(self):
         return self.desc
 
-# Including these, because occasionally there is text like "See the manual", to save space.
-# If the game file is not close to the zmachine limit, I should be able to encoude a new zstring
-# and append to the end of the file, then switch out the address reference.
-
 class Infidel_fix(Fix):
     needed = True
 
@@ -105,6 +101,32 @@ class Infidel_fix(Fix):
 #        We want to change to something like: 
 #        The map records that he found the hieroglyphic cube at longitude 12'43\" and latitude 11'3\" on 27 September 1920.";
         return 0
+
+class Stationfall_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.game_name = "Stationfall"
+        self.gamefile = gf
+        self.gamesize = gf.gamesize
+        self.contents = bytearray(gf.contents)
+        self.desc = ("Like Starcross, Stationfall needs coordinates from the documentation. We'll set it up so that "
+                     "every coordinate leads to the space station.")
+
+    # untested
+    def fix(self):
+        if self.gamefile.release == 1:
+            print("This beta version has issues. TXD exits, and I'm not sure if it has protection anyway.")
+            return 0
+
+        elif self.gamefile.release == 107:
+            self.set_byte(0xbee0, 0x6c)
+            self.set_byte(0xbef4, 1)
+            return 1
+        else:
+            print("This will take some study on my part--it relies on global variable settings.")
+            return 0
+
 
 class Witness_fix(Fix):
     needed = True
@@ -167,6 +189,19 @@ class Seastalker_fix(Fix):
 class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
+
+class Moonmist_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.game_name = "Moonmist"
+        slef.desc = ("Moonmist has numerous references to the manuals, but the game is very very close to the max filesize for "
+                     "z3 games. The best bet would be to port it to zmachine 4 and compile it with no text, but that's outside "
+                     "the scope for this game.")
+
+    def fix(self):
+        return 0
+
 
 class Deadline_fix(Fix):
     def __init__(self, gf):
@@ -703,6 +738,11 @@ games = {
     ("851108", 15) : Sorcerer_fix,
     ("860904", 18) : Sorcerer_fix,
 
+    ("861017", 1)   : Stationfall_fix,
+    ("870218", 63)  : Stationfall_fix,
+    ("870326", 87)  : Stationfall_fix,
+    ("870430", 107) : Stationfall_fix,
+
     ("890502", 40) : Arthur_fix,
     ("890504", 41) : Arthur_fix,
     ("890606", 54) : Arthur_fix,
@@ -729,6 +769,11 @@ games = {
     ("820901", 15) : Starcross_fix,
     ("821021", 17) : Starcross_fix,
     ("830114", 18) : Starcross_fix,
+
+    ("000000", 65) : Moonmist_fix,
+    ("860918", 4) :  Moonmist_fix,
+    ("861022", 9) :  Moonmist_fix,
+    ("880501", 13) : Moonmist_fix,
 
     ("000000", 5) : Zork_fix,
     ("000000", 20) : Zork_fix,
