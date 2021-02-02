@@ -85,6 +85,15 @@ class Fix:
         self.set_byte(0x1c, w[0])
         self.set_byte(0x1d, w[1])
 
+        if self.gamefile.zcode_version == 3:
+            w = make_zword(self.gamesize // 2)
+        elif 4 <= self.gamefile.zcode_vesion <= 5:
+            w = make_zword(self.gamesize // 4)
+        else:
+            w = make_zword(self.gamesize // 8)
+        self.set_byte(0x1a, w[0])
+        self.set_byte(0x1b, w[1])
+
         new_serial = dt.datetime.now().strftime("%y%m%d")
         for i in range(6):
             self.set_byte(18 + i, ord(new_serial[i]))
@@ -111,15 +120,31 @@ class Witness_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Witness"
         self.gamefile = gf
+        self.gamesize = gf.gamesize
         self.contents = bytearray(gf.contents)
         self.desc = ("The Witness has a matchbook and note. I'll encode these in new strings and add to the "
                      "end of the file, then change the description addresses.")
 
     def fix(self):
         note_text = "Monica dearest,\n\nI can live with this sadness no longer. For twenty nine years, your father has lived his own life without me. Now I am taking the only way out.\n\nMonica, you musn't blame yourself in any way for what I am about to do. Nor should you blame Ralph. The affair with him was only a futile attempt to prove I was a woman, not just a piece in Freeman's collection.\n\nTell your illustrious father how deeply I regret soiling one of his precious revolvers.\n\nMonica\n"
-        matchbook_text = "Chandler 1729"
+        matchbook_text = "Written on the inner fold of the matchook is \"Chandler 1729\"."
 
-        print("I haven't written the zscii encode routines yet.")
+        if self.gamefile.release == 23:
+            matchbook_read_addr = 0xfd5
+        else:
+            print("I haven't written the zscii encode routines yet.")
+            return 0
+
+        bytes = self.gamefile.zscii.encode_text(matchbook_text)
+
+        # zmachine 3 is packed with doubles:
+        str_addr = self.gamesize // 2
+        self.contents += bytes
+        self.gamesize += len(bytes)
+        self.contents[matchbook_read_addr:matchbook_read_addr+2] = [str_addr >> 8, str_addr & 255]
+        return 1
+
+        
 
 class Seastalker_fix(Fix):
     needed = True
@@ -164,6 +189,7 @@ class AMFV_fix(Fix):
     def __init__(self, gf):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
+        self.gamesize = gf.gamesize
         self.game_name = "AMFV"
         self.desc = ("AMFV uses a code wheel where you match and type in an integer code."
                      " This fix will reverse the branching, so an correct answer will fail, "
@@ -377,6 +403,278 @@ class Sorcerer_fix(Fix):
         self.set_byte(start+2, zw[1])
         return 1
         
+def word(w):
+    return w[0] * 256 + w[1]
+    
+# I removed the part from z1 and z2. For full version, see my ztools
+class Zscii:
+    modern_zscii = [
+      " ^^^^^abcdefghijklmnopqrstuvwxyz ",
+      " ^^^^^ABCDEFGHIJKLMNOPQRSTUVWXYZ ",
+      " ^^^^^ \n0123456789.,!?_#'\"/\\-:() ",
+    ]
+
+    story = None
+
+    def __init__(self, s_obj):
+        self.story = s_obj
+        self.bytes_read = None
+
+        v = s_obj.header["version"]
+        self.zscii = self.modern_zscii
+
+    
+    def convert_zscii_bytes(self, bytes):
+        zstring = ""
+        shift, abbrev_flag, ascii_flag = -1, False, False
+
+        v = self.story.header["version"]
+        zscii = self.zscii
+
+        for i, b in enumerate(bytes):
+            if ascii_flag:
+                ascii_flag = False
+                i += 1
+                if i == len(bytes):
+                    return zstring
+                zstring += chr(bytes[i-1] << 5 | b)
+                continue
+            if abbrev_flag:
+                ndx = 32 * (bytes[i-1]-1) + b
+                zstring += self.story.abbreviations[ndx]
+                #print("ABBREV", self.story.abbreviations[ndx], ndx, "pre-byte", bytes[i-1], "byte", b)
+                abbrev_flag = False
+                shift = -1
+                continue
+
+            if b == 0:
+                zstring += " "
+                continue
+            elif b == 1:
+                if v < 2:
+                    zstring += "\n"
+                else:
+                    abbrev_flag = True
+                continue
+            elif b == 2:
+                abbrev_flag = True
+                continue
+            elif b == 3:
+                abbrev_flag = True
+                continue
+            elif b == 4:
+                shift = 1
+                abbrev_flag = False
+                continue
+            elif b == 5:
+                shift = 2
+                abbrev_flag = False
+                continue
+            elif b == 6:
+                if shift == 2:
+                    shift = -1
+                    ascii_flag = True
+                    continue
+
+            if shift > -1:
+                zstring += zscii[shift][b]
+            else:
+                zstring += zscii[0][b]
+            shift = -1
+            abbrev_flag = False
+        return zstring
+
+    modern_zscii_convert = [
+      "abcdefghijklmnopqrstuvwxyz ",
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ ",
+      " \n0123456789.,!?_#'\"/\\-:() ",
+    ]
+
+    def find_char(self, c):
+        for i, alphabet in enumerate(self.modern_zscii_convert):
+            if c in alphabet:
+                return i, alphabet.index(c) + 6
+
+        return None, None
+
+    def convert_to_bytes(self, text):
+        i = 0
+        bytes = []
+
+        while i < len(text):
+            aflag = False
+            for ndx, abbr in enumerate(self.story.abbreviations):
+                if text[i:].startswith(abbr):
+                    a, b = divmod(ndx, 32)
+                    #print("ABBR", abbr, a, b)
+                    bytes.append(a+1)
+                    bytes.append(b)
+                    i += len(abbr)
+                    aflag = True
+                    break
+            if aflag:
+                continue
+            if text[i] == ' ':
+                bytes.append(0)
+                i += 1
+                continue
+            alphabet, ndx = self.find_char(text[i])
+            if alphabet == None:
+                print("Char `{}': ASCII functionality not yet added. See zscii class.".format(text[i]))
+                return None
+            if alphabet:
+                bytes.append(3 + alphabet)
+            bytes.append(ndx)
+            i += 1
+        if len(bytes) % 3:
+            bytes += [5] * (3 - len(bytes) % 3)
+            #bytes.append(5)
+
+        return bytes
+
+    def encode_bytes(self, bytes):
+        it = iter(bytes)
+        
+        zs = bytearray()
+        for c1 in it:
+            c2 = next(it)
+            c3 = next(it) 
+            w = (c1 << 10) | (c2 << 5) | c3
+            zs.append(w >> 8)
+            zs.append(w & 255)
+        zs[-2] |= 2 ** 7
+
+        return zs
+        
+    def encode_text(self, text):
+        bytes = self.convert_to_bytes(text)
+        return self.encode_bytes(bytes)
+
+    def read_text(self, addr, len, inform_escapes=False, full_return=False):
+        bytes = []
+        real_bytes = []
+        
+        i = 0
+        for i in range(len):
+            w = word(self.story.contents[addr + i * 2:addr + i * 2 + 2])
+            real_bytes = real_bytes + [(w >> 8, w & 255)]
+            bit = w >> 15
+            c3 = w & 31
+            c2 = (w & 0x3e0) >> 5
+            c1 = (w & 0x7c00) >> 10
+
+            bytes += [ c1, c2, c3 ]
+            if bit: 
+                i += 1
+                break
+
+        self.bytes_read = i * 2
+        zs = self.convert_zscii_bytes(bytes)
+        if inform_escapes:
+            zs = zs.replace('"', "~").replace("\n", "^")
+        if full_return:
+            return self.bytes_read, bytes, real_bytes, zs
+        return zs
+
+class Story:
+    zscii = False
+    configuration = None
+
+    def fatal(self, s):
+        print("{0}: {1}".format(self.filename, s))
+        sys.exit(1)
+        
+    def parse_header(self):
+        h = self.header = dict()
+        c = self.contents
+
+        if 0 < c[0] < 9:
+            h["version"] = version = c[0]
+            self.zcode_version = version
+        else:
+            self.fatal("unknown zmachine version (byte 0x00={:d}, expecting 1-8)".format(c[0]))
+
+        h["flags"] = c[1]
+        h["release"] = word(c[2:4])
+        h["highmem"] = word(c[4:6])
+        h["pc"]      = word(c[6:8])
+        h["dict"]    = word(c[8:10])
+        h["otable"]  = word(c[0xa:0xc])
+        h["globals"] = word(c[0xc:0xe])
+        h["static"]  = word(c[0xe:0x10])
+        h["gflags"]  = word(c[0x10:0x12])
+        h["serial"]  = c[18:24].decode("utf-8")
+        if version >= 2:
+            h["abbr"]    = word(c[0x18:0x1a])
+        else:
+            h["abbr"] = None
+        h["filelen"] = word(c[0x1a:0x1c])
+        h["cksum"]   = word(c[0x1c:0x1e])
+
+        # reasons: I'll clean up later
+        self.release = h["release"]
+        self.serial = h["serial"]
+        self.gamesize = h["filelen"]
+        if 1 <= self.zcode_version <= 3:
+            self.gamesize *= 2
+        elif 4 <= self.zcode_version <= 5:
+            self.gamesize *= 4
+        else:
+            self.gamesize *= 8
+        if len(self.contents) < self.gamesize:
+            print("{0}: file is truncated (less than header gamesize)".format(fn))
+            sys.exit(1)
+
+    def read_high(self, addr):
+        n, b, rb, s = self.zscii.read_text(addr, 0xffff, full_return=True)
+#        print(n)
+#        print("literal bytes", rb)
+#        print("binary literal bytes", ["({:08b},{:08b})".format(x[0], x[1]) for x in rb])
+#        print("5-bit zbytes", ["{:05b}".format(x) for x in b])
+#        print("zbytes", b)
+#        print(s)
+        return b, s
+
+    def __init__(self, storyfile):
+        self.filename = storyfile
+        try:
+            fd = open(storyfile, "rb")
+        except OSError as err:
+            self.fatal(err)
+
+        self.contents = fd.read()
+        if len(self.contents) < 0x40:
+            self.fatal("story file too short to be zmachine file")
+
+        self.abbreviations = None
+        self.addr_to_dict = dict()
+
+        self.parse_header()
+
+        self.zscii = Zscii(self)
+        self.read_abbreviations()
+
+    def read_abbreviations(self):
+        v = self.header["version"]
+        hi, lo = -1, 0x7ffff
+
+        if v == 1:
+            return
+
+        z = self.zscii
+        addr = self.header["abbr"]
+        if not addr:
+            return
+
+        max_a = 32 if v == 2 else 96
+        abbr = self.abbreviations = [0] * max_a
+
+        zo = self.zscii
+        for i in range(max_a):
+            abbr[i] = z.read_text(word(self.contents[addr:addr+2]) * 2, 753)
+            lo = min(word(self.contents[addr:addr+2]) * 2, lo)
+            hi = max(word(self.contents[addr:addr+2]) * 2 + z.bytes_read - 1, hi)
+            addr += 2
 
 games = {
     ("841226", 1) :   AMFV_fix,
@@ -492,75 +790,43 @@ def make_zword(n):
         n = 65536 + n
     return (n // 256, n % 256)
 
-class Zscii:
-    alphabet = [
-        "abcdefghijklmnopqrstuvwxyz",
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        " \n0123456789.,!?_#'\"/\\-:()"
-    ]
-    
-    def alphabet_number(c):
-        for i in range(3):
-            for j in range(26):
-                if self.alphabet[i][j] == c:
-                    return i
-
-        # Let's see if we can get by without implementing complete ascii or utf8 encoding, for now
-        print("Text encode: alphabet_number() unable to find `{:s}' (ord: {:d}) in alphabet\n".format(c, ord(c)))
-        sys.exit(0)
-
-    def string_index(c):
-        for i in range(3):
-            for j in range(26):
-                if self.alphabet[i][j] == c:
-                    return j
-        print("Text encode: alphabet_number() unable to find `{:s}' (ord: {:d}) in alphabet\n".format(c, ord(c)))
-        sys.exit(0)
-        
-    def encode_text(s):
-        zchars = len(s) * 2 + 1
-        # will do later
-
-def word(w):
-    return w[0] * 256 + w[1]
-
-class Gamefile:
-    def __init__(self, fn):
-        self.filename = fn
-
-        try:
-            fd = open(fn, "rb")
-        except IOError as err:
-            print(err)
-            sys.exit(1)
-
-        self.contents = contents = fd.read()
-        
-        if len(self.contents) < 0x40:
-            print("{fn}: too short to be Infocom game file".format(fn=fn))
-            sys.exit(1)
-
-        self.zcode_version = self.contents[0]
-        if self.zcode_version >= 6:
-            print("{fn}: not a zmachine file (version too high)".format(fn=fn))
-
-        self.serial = contents[18:24].decode("ascii")
-        self.release = word(contents[2:4])
-        self.gamesize = word(contents[0x1a:0x1c])
-        if 1 <= self.zcode_version <= 3:
-            self.gamesize *= 2
-        elif 4 <= self.zcode_version <= 5:
-            self.gamesize *= 4
-        else:
-            self.gamesize *= 8
-
-        if len(self.contents) < self.gamesize:
-            print("{0}: file is truncated (less than header gamesize)".format(fn))
-            sys.exit(1)
+# class Gamefile:
+#     def __init__(self, fn):
+#         self.filename = fn
+# 
+#         try:
+#             fd = open(fn, "rb")
+#         except IOError as err:
+#             print(err)
+#             sys.exit(1)
+# 
+#         self.contents = contents = fd.read()
+#         
+#         if len(self.contents) < 0x40:
+#             print("{fn}: too short to be Infocom game file".format(fn=fn))
+#             sys.exit(1)
+# 
+#         self.zcode_version = self.contents[0]
+#         if self.zcode_version >= 6:
+#             print("{fn}: not a zmachine file (version too high)".format(fn=fn))
+# 
+#         self.serial = contents[18:24].decode("ascii")
+#         self.release = word(contents[2:4])
+#         self.gamesize = word(contents[0x1a:0x1c])
+#         if 1 <= self.zcode_version <= 3:
+#             self.gamesize *= 2
+#         elif 4 <= self.zcode_version <= 5:
+#             self.gamesize *= 4
+#         else:
+#             self.gamesize *= 8
+# 
+#         if len(self.contents) < self.gamesize:
+#             print("{0}: file is truncated (less than header gamesize)".format(fn))
+#             sys.exit(1)
         
 
 def main(args):
-    gf = Gamefile(args.gamefile)
+    gf = Story(args.gamefile)
 
     identifier = (gf.serial, gf.release)
 
