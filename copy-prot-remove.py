@@ -12,48 +12,19 @@
 # Moonmist (impossible, utterly impossible)
 # Wishbringer (Matchbook desc and telegram)
 
-# Suspended (no copy prot)
-# Suspect (No copy protection)
+# Suspended (no copy prot, but hard to play without the package)
+# Suspect (No copy protection, but some text referring to the package)
 # Trinity (no copy protection per se--though it helps)
-# Witness (no copy protection?)
 # HH Guide (no copy prot)
-# Beyond Zork (No copy prot? I don't recall)
+# Beyond Zork (No copy prot? I don't recall -- I guess the book?)
 # Plundered Hearts (no copy prot)
 # Sherlock (No copy prot? Don't know very well)
-
 
 # Version 0.1
 # Master copy here: https://github.com/allengarvin/infocom-copy-protection
 
 # Copyright 2021 "Allen Garvin" <aurvondel@gmail.com>
 # License: 3-clause BSD
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-# 
-# 1. Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# 
-# 2. Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
-# 
-# 3. Neither the name of the copyright holder nor the names of its
-# contributors may be used to endorse or promote products derived from
-# this software without specific prior written permission.
-# 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-# TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Note: I wrote an earlier version of this in C in the 1990s, to help a
 # blind player who was having trouble trying to play Infocom's games.
@@ -114,6 +85,27 @@ class Fix:
 # If the game file is not close to the zmachine limit, I should be able to encoude a new zstring
 # and append to the end of the file, then switch out the address reference.
 
+class Infidel_fix(Fix):
+    needed = True
+
+    def __init__(self, gf):
+        self.game_name = "Infidel"
+        self.gamefile = gf
+        self.gamesize = gf.gamesize
+        self.contents = bytearray(gf.contents)
+        self.desc = "Infidel relies on the game map to give coordinates. Here, I'll add those to the description of the map."
+
+    def fix(self):
+        print("This one will be a bit difficult. It uses a print_ret so we'll need to fit it less than the number of bytes in the function")
+        print("If it's not exact, txd will choke (I think the game should still function, but it seems rude to break tools)")
+
+#        The code is:
+#        print_ret "This is a reproduction of the map the Professor made while on his expedition. It indicates where he hoped to find the lost pyramid. It is included in your game package."
+#
+#        We want to change to something like: 
+#        The map records that he found the hieroglyphic cube at longitude 12'43\" and latitude 11'3\" on 27 September 1920.";
+        return 0
+
 class Witness_fix(Fix):
     needed = True
 
@@ -152,6 +144,7 @@ class Seastalker_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Seastalker"
         self.gamefile = gf
+        self.gamesize = gf.gamesize
         self.contents = bytearray(gf.contents)
         self.desc = ("Seastalker has no explicit copy-prot, but it does have a lot of text that you have to "
                      "read from the feelies. I'm going to fix up the object descriptions and encrypt in new "
@@ -224,6 +217,7 @@ class Starcross_fix(Fix):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
         self.game_name = "Starcross"
+        self.gamesize = gf.gamesize
         self.desc = ("Starcross was the first Infocom game with copy protection in the feelies, "
                      "for coordinates to the mysterious 'mass'. Here, we'll modify the file so that "
                      "no matter what destination you put in, you will always end up at the Artifact.")
@@ -266,6 +260,7 @@ class Arthur_fix(Fix):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
         self.game_name = "Arthur"
+        self.gamesize = gf.gamesize
         self.desc = ("With Arthur, we change it so that every password is correct.")
 
     # UNTESTED
@@ -291,6 +286,7 @@ class Spellbreaker_fix(Fix):
     def __init__(self, gf):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
+        self.gamesize = gf.gamesize
         self.game_name = "Spellbreaker"
         self.desc = ("Spellbreaker uses several wizard cards describing big-name wizards, "
                      "and Belboz cite their attributes expecting a name back. We change it so "
@@ -317,6 +313,7 @@ class Lurking_fix(Fix):
     def __init__(self, gf):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
+        self.gamesize = gf.gamesize
         self.game_name = "Lurking Horror"
         self.desc = ("In Lurking Horror, one must log into the computer with a user/pass from "
                     "the feelies. Here we set it so any input will work.")
@@ -345,6 +342,7 @@ class Bureaucracy_fix(Fix):
     def __init__(self, gf):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
+        self.gamesize = gf.gamesize
         elf.game_name = "Bureaucracy"
         selfdesc = ("I got this fix from Mark Knibb's patches from ftp.gmd.de/ifarchive.")
 
@@ -355,8 +353,8 @@ class Bureaucracy_fix(Fix):
         elif self.gamefile.release == 116:
             start1, start2 = 0x27691, 0x276BB
         elif self.gamefile.release == 160:
-            print("This throws an exception in txd, so I haven't done it yet. I'm working on a txd replacement.")
-            print("Fatal: too many orphan code fragments")
+            print("This throws an exception in txd, so I haven't done it yet. I'm working on a txd replacement so perhaps I can figure out why. The game still plays.")
+            print("TXD's error is: Fatal: too many orphan code fragments")
             return 0
         for addr in range(start1, start1 + 5):
             self.set_byte(addr, 0xb4)
@@ -370,6 +368,7 @@ class Sorcerer_fix(Fix):
     def __init__(self, gf):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
+        self.gamesize = gf.gamesize
         elf.game_name = "Sorcerer"
         self.desc = ("In Sorcerer, the copy protection consists of an Infotater wheel "
                 "where the player looks up one of 12 monsters and gets a color code "
@@ -782,6 +781,9 @@ games = {
     ("870212", 86) :  Bureaucracy_fix,
     ("870602", 116) : Bureaucracy_fix,
     ("880521", 160) : Bureaucracy_fix,
+
+    ("830916", 22) : Infidel_fix,
+    ("840522", 22) : Infidel_fix,
 
 }
 
