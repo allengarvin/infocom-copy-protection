@@ -73,6 +73,7 @@ class Fix:
         self.set_byte(0x1a, w[0])
         self.set_byte(0x1b, w[1])
 
+        # comment out to make reform work on file
         new_serial = dt.datetime.now().strftime("%y%m%d")
         for i in range(6):
             self.set_byte(18 + i, ord(new_serial[i]))
@@ -88,6 +89,21 @@ class Fix:
 
     def description(self):
         return self.desc
+
+    def append_text(self, text):
+        bytes = self.gamefile.zscii.encode_text(text)
+        
+        vers = self.gamefile.zcode_version
+        if vers == 3:
+            str_addr = self.gamesize // 2
+        elif 4 <= vers <= 5:
+            str_addr = self.gamesize // 4
+        else:
+            str_addr = self.gamesize // 8
+
+        self.contents += bytes
+        self.gamesize += len(bytes)
+        return str_addr
 
 class Infidel_fix(Fix):
     needed = True
@@ -162,16 +178,10 @@ class Witness_fix(Fix):
             print("I haven't written the zscii encode routines yet.")
             return 0
 
-        bytes = self.gamefile.zscii.encode_text(matchbook_text)
-
-        # zmachine 3 is packed with doubles:
-        str_addr = self.gamesize // 2
-        self.contents += bytes
-        self.gamesize += len(bytes)
+        str_addr = self.append_text(matchbook_text)
         self.contents[matchbook_read_addr:matchbook_read_addr+2] = [str_addr >> 8, str_addr & 255]
-        return 1
-
         
+        return 1
 
 class Seastalker_fix(Fix):
     needed = True
@@ -186,19 +196,63 @@ class Seastalker_fix(Fix):
                      "strings, added to the end of the game file.")
 
     def fix(self):
-        tip_text = "Tip is your closest pal and constant companion. Basically, there's nothing this guy can't do. He's an expert pilot, submariner, surfer, and swimmer. He's more of a jock than an inventor such as yourself, but his bulldog courage and rollicking high spirits make him a great companion in any adventure."
-        bly_text = "This woman's delicate beauty is hard to resist, but when you start to talk to her--wow, what a tough one she is. For one thing, she's a champion athlete and a superachiever. For the past three months now, she's been commander at the Aquadome. She's an honor graduate of the Navy Frogman School and the Galley Institute of Technology. You'll see soon enough that she doesn't have much patience with people who don't meet her standards. And that attitude tends to make some people real mad."
-        mick_text = "Mick was probably out earning a buck before most of us were born. In fact, you won't find anybody who knows more about nuclear power, undersea navigation, or communications. That's pretty good for a guy who never had a formal education. But Mick doesn't like to settle arguments with his tongue; he'd rather use his fists. Naturally, he doesn't take well to Commander Bly's kind of discipline."
-        bill_text = "Bill comes from a different background altogether. Basically, he used to be a beach bum with a knack for scuba diving and \"shade tree\" mechanic work. Now he's joined society in a big way. He's cut his hair and found himself a job as a crack scuba diver at the Aquadome."
-        horvak_text = "Walt's probably the most dedicated scientist around, so dedicated that sometimes you get the impression he's a loner. He's always working on some new experiment or scuba diving. Walt doesn't look like the \"doctor\" type, but he spent a lot of time working in a hospital before he got interested in marine biochemistry. If you're looking for any kind of medical advice, he's the one to ask."
-        sharon_text = "She's fresh out of college--The Massachusetts Institute of Technology. Naturally, she's pretty familiar with all types of science and technology, and this job as an inventor's assistant fits her well. Her father was a famous college professor and an old friend of your father's. In fact, sometimes you get the feeling that she's your own sister. But there's something about her that you can't get close to."
-        amy_text = "She's a Navy woman through and through. Always a tomboy at heart, Amy's been to the Navy Frogman School and had lots of neat jobs like this one. She's still in college at Columbia University and works at the Aquadome during the summer."
-        jerome_text = "Dr. Thorpe is one of those scientific geniuses who lock themselves up in their labs and discover things. Unfortunately, sometimes the things they discover or create aren't too good. Thorpe's claim to fame is his AH (AMINO-HYDROPHASE) organisms that he supposedly manufactured from the AH molecule. There's an interesting article about him and his experiments in the Science World magazine."
+        # Note: these don't work. I need to examine the code to figure out why. The desc property isn't
+        # referenced... 
+
+        texts = {
+#            "tip" : "Tip is your closest pal and constant companion. Basically, there's nothing this guy can't do. He's an expert pilot, submariner, surfer, and swimmer. He's more of a jock than an inventor such as yourself, but his bulldog courage and rollicking high spirits make him a great companion in any adventure.",
+#            "bly" : "This woman's delicate beauty is hard to resist, but when you start to talk to her--wow, what a tough one she is. For one thing, she's a champion athlete and a superachiever. For the past three months now, she's been commander at the Aquadome. She's an honor graduate of the Navy Frogman School and the Galley Institute of Technology. You'll see soon enough that she doesn't have much patience with people who don't meet her standards. And that attitude tends to make some people real mad.",
+#            "mick" : "Mick was probably out earning a buck before most of us were born. In fact, you won't find anybody who knows more about nuclear power, undersea navigation, or communications. That's pretty good for a guy who never had a formal education. But Mick doesn't like to settle arguments with his tongue: he'd rather use his fists. Naturally, he doesn't take well to Commander Bly's kind of discipline.",
+#            "bill" : "Bill comes from a different background altogether. Basically, he used to be a beach bum with a knack for scuba diving and \"shade tree\" mechanic work. Now he's joined society in a big way. He's cut his hair and found himself a job as a crack scuba diver at the Aquadome.",
+#            "horvak" : "Walt's probably the most dedicated scientist around, so dedicated that sometimes you get the impression he's a loner. He's always working on some new experiment or scuba diving. Walt doesn't look like the \"doctor\" type, but he spent a lot of time working in a hospital before he got interested in marine biochemistry. If you're looking for any kind of medical advice, he's the one to ask.",
+#            "sharon" : "She's fresh out of college--The Massachusetts Institute of Technology. Naturally, she's pretty familiar with all types of science and technology, and this job as an inventor's assistant fits her well. Her father was a famous college professor and an old friend of your father's. In fact, sometimes you get the feeling that she's your own sister. But there's something about her that you can't get close to.",
+#            "amy" : "She's a Navy woman through and through. Always a tomboy at heart, Amy's been to the Navy Frogman School and had lots of neat jobs like this one. She's still in college at Columbia University and works at the Aquadome during the summer.",
+#            "jerome" : "Dr. Thorpe is one of those scientific geniuses who lock themselves up in their labs and discover things. Unfortunately, sometimes the things they discover or create aren't too good. Thorpe's claim to fame is his AH (AMINO-HYDROPHASE) organisms that he supposedly manufactured from the AH molecule. There's an interesting article about him and his experiments in the Science World magazine.",
 
 
-        computestor_text = "It's a machine for troubleshooting your own inventions, machines, or systems. It is connected to several other machines in the lab. To use it type ASK COMPUTESTOR ABOUT (a device)."
-        print("I haven't written the zscii encode routines yet.")
+            "computestor" : "It's a machine for troubleshooting your own inventions, machines, or systems. It is connected to several other machines in the lab. To use it type ASK COMPUTESTOR ABOUT (a device).",
+            "electrical_panel" : "Inventions Unlimited generates is own electrical power.",
+            "videophone" : "This communications device is connected to the Aquadome and all other Inventions Unlimited buildings. It's in the middle of your lab and it works like a telephone. But instead of just listening to other people, you can look at them on a screen. Answer the videophone by turning it on, then turn the knob to tune it.",
+            "brass_light" : "This light comes on automatically when your sub descends beyond the depths of sunlight penetration. You can aim it left or right (port or starboard) to illuminate objects up to 1000 meters away.",
+            "reactor" : "The scimitar is powered by a midget nuclear reactor. The secret of the reactor is a special capsule that must be inserted intot he reactor by the push of a lever that starts the fusion process.",
+            "sonarscope" : "This instrument works like a radar and shows you solid objects or Sea Cat sonar signals within 2500 meters in any direction and at the same depth as the Scimitar. Reading the sonarscope is like reading the nautical chart in the package. As you read it, remember that your sub always appears directly in the middle of the screen. So, as you move, it may look as if the land is moving instead of you. If you're on a collision course with something, a yellow light will come on. This light will turn red and a loud buzzer will sound if you're within one turn of a collision. You should change course any time a yellow or red light appears.",
+            "scanner" : "It sweeps the entire grounds of the Research Lab with harmless microwaves. Any human not wearing a special identification badge will be detected if they are on the property. If intruders are detected, the alarm will beep loudly",
+        }
 
+        if self.gamefile.release == 18:
+            # Prop18 is description
+            addresses = {
+                "tip" : 0x1724,
+                "bly" : [0x1c82, 0x2541],
+                "mick" : 0x1dc5,
+                "bill" : 0x20f1,
+                "horvak" : 0x1183,
+                "sharon" : 0x1df0,
+                "amy" : 0x1e74,
+                "jerome" : 0x2496,
+                "computestor" : 0x11a4,
+                "scanner" : 0x17c5,
+                "electrical_panel" : 0x17df,
+                "videophone" : [ 0x0c34, 0x1e4a ],
+                "reactor" : 0x19d5,
+                "sonarscope" : 0x1487,
+                "brass_light" : 0x1848,
+            }
+        else:
+            print("I haven't done release {} yet.".format(self.gamefile.release))
+            return 0
+
+        for who, txt in texts.items():
+            str_addr = self.append_text(txt)
+            s1, s2 = str_addr // 256, str_addr & 255
+            if type(addresses[who]) == list:
+                for addr in addresses[who]:
+                    self.contents[addr:addr+2] = [s1, s2]
+            else:
+                addr = addresses[who]
+                self.contents[addr:addr+2] = [s1, s2]
+        return 1
+        
 class Zork_fix(Fix):
     def __init__(self, gf):
         self.game_name = "Zork"
