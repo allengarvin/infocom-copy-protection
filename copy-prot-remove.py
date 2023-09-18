@@ -66,7 +66,7 @@ class Fix:
 
         if self.gamefile.zcode_version == 3:
             w = make_zword(self.gamesize // 2)
-        elif 4 <= self.gamefile.zcode_vesion <= 5:
+        elif 4 <= self.gamefile.zcode_version <= 5:
             w = make_zword(self.gamesize // 4)
         else:
             w = make_zword(self.gamesize // 8)
@@ -445,8 +445,8 @@ class Bureaucracy_fix(Fix):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
         self.gamesize = gf.gamesize
-        elf.game_name = "Bureaucracy"
-        selfdesc = ("I got this fix from Mark Knibb's patches from ftp.gmd.de/ifarchive.")
+        self.game_name = "Bureaucracy"
+        self.desc = ("I got this fix from Mark Knibb's patches from ftp.gmd.de/ifarchive.")
 
     # Untested
     def fix(self):
@@ -471,7 +471,7 @@ class Sorcerer_fix(Fix):
         self.gamefile = gf
         self.contents = bytearray(gf.contents)
         self.gamesize = gf.gamesize
-        elf.game_name = "Sorcerer"
+        self.game_name = "Sorcerer"
         self.desc = ("In Sorcerer, the copy protection consists of an Infotater wheel "
                 "where the player looks up one of 12 monsters and gets a color code "
                 "for pushing buttons to open a trunk. "
